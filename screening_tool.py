@@ -121,7 +121,7 @@ if not st.session_state.authenticated:
 if st.session_state.is_dev:
     with st.sidebar.expander("⚙️ Dev Settings"):
         if st.text_input("Re-enter Dev Password", type="password") == DEV_PASSWORD:
-            st.success(f"Welcome {DEV_USERNAME}!")
+            st.success(f"Welcome Aurumz!")
 
             st.subheader("Manage Whitelisted Emails")
             new_email = st.text_input("Add email to whitelist")
