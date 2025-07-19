@@ -606,14 +606,13 @@ if maybe_results:
 else:
     st.info("No Maybe papers found.")
 
-# Export options # Export options (DOCX, PDF, CSV, XLSX)
+# Export options # Export options (DOCX, CSV, XLSX)
 if included_results or excluded_results or maybe_results:
     st.header("Export Results")
 
     def export_buttons(df, label_prefix):
         formats = {
             "DOCX": ("application/vnd.openxmlformats-officedocument.wordprocessingml.document", to_docx(df), f"{label_prefix.lower()}_papers.docx"),
-            "PDF":  ("application/pdf", to_pdf(df), f"{label_prefix.lower()}_papers.pdf"),
             "CSV":  ("text/csv", to_csv(df), f"{label_prefix.lower()}_papers.csv"),
             "XLSX": ("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", to_excel(df), f"{label_prefix.lower()}_papers.xlsx")
         }
