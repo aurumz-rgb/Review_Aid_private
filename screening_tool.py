@@ -13,23 +13,29 @@ from io import BytesIO
 from docx import Document
 from fpdf import FPDF
 from cryptography.fernet import Fernet
+from dotenv import load_dotenv
+load_dotenv()
 
 WHITELIST_FILE = "whitelist.json"
 HISTORY_FILE = "login_history.json"
  
 
-def load_key():
-    with open("secret.key", "rb") as key_file:
-        return key_file.read()
+from dotenv import load_dotenv
+import os
+import base64
+from cryptography.fernet import Fernet
 
-def load_encrypted_password():
-    with open("encrypted_password.bin", "rb") as f:
-        return f.read()
+load_dotenv()  # load variables from .env
+
+secret_key_b64 = os.getenv("SECRET_KEY_BASE64")
+encrypted_password_b64 = os.getenv("ENCRYPTED_PASSWORD_BASE64")
+
+# Decode base64 strings back to bytes
+secret_key = base64.b64decode(secret_key_b64)
+encrypted_password = base64.b64decode(encrypted_password_b64)
 
 def decrypt_password():
-    key = load_key()
-    encrypted_password = load_encrypted_password()
-    fernet = Fernet(key)
+    fernet = Fernet(secret_key)
     decrypted = fernet.decrypt(encrypted_password).decode()
     return decrypted
 
