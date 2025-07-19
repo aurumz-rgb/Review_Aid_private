@@ -1,0 +1,8 @@
+
+whitelist.json
+.DS_Store
+secret.key
+encrypted_password.bin
+login_history.json
+.env
+encrypt_password.py
