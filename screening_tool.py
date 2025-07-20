@@ -8,6 +8,10 @@ import json
 import io
 import plotly.express as px
 import pandas as pd
+
+
+
+
 from datetime import datetime
 from io import BytesIO
 from docx import Document
@@ -27,6 +31,7 @@ from cryptography.fernet import Fernet
 
 load_dotenv()  # load variables from .env
 
+GUEST_PASSWORD = os.getenv("GUEST_PASSWORD")
 secret_key_b64 = os.getenv("SECRET_KEY_BASE64")
 encrypted_password_b64 = os.getenv("ENCRYPTED_PASSWORD_BASE64")
 
@@ -52,7 +57,8 @@ def load_whitelist():
 
 def save_whitelist(whitelist):
     with open(WHITELIST_FILE, "w") as f:
-        json.dump(whitelist, f)
+        json.dump(list(set(whitelist)), f)  # remove duplicates
+
 
 def load_history():
     if os.path.exists(HISTORY_FILE):
@@ -82,7 +88,7 @@ if "start_time" not in st.session_state:
 # ======= AUTHENTICATION SECTION =======
 if not st.session_state.authenticated:
     st.title("🔒 Private version, Login Required")
-    choice = st.radio("Login as:", ["Dev", "Guest"])
+    choice = st.radio("Login as:", ["Dev", "Mail", "Guest password"])
 
     if choice == "Dev":
         dev_pass = st.text_input("Enter Dev Password", type="password")
@@ -94,9 +100,9 @@ if not st.session_state.authenticated:
             else:
                 st.error("Incorrect Dev Password")
 
-    else:  # Friend login
+    elif choice == "Mail":
         email = st.text_input("Enter your email")
-        if st.button("Login as Guest"):
+        if st.button("Login with Mail"):
             if email in st.session_state.whitelist:
                 st.session_state.authenticated = True
                 st.session_state.is_dev = False
@@ -111,38 +117,50 @@ if not st.session_state.authenticated:
                 st.rerun()
             else:
                 st.error("Access denied: Email not approved")
+
+    elif choice == "Guest password":
+        guest_pass = st.text_input("Enter Guest Password", type="password")
+        if st.button("Login as Guest"):
+            if guest_pass == GUEST_PASSWORD:
+                st.session_state.authenticated = True
+                st.session_state.is_dev = False
+                st.session_state.is_guest = True
+                st.session_state.user_email = "guest_user"
+                st.rerun()
+            else:
+                st.error("Incorrect Guest Password")
+
     st.stop()
-
-
-
 
 # ======= DEV PANEL (in sidebar) =======
 # ======= DEV PANEL (in sidebar) =======
 # ======= DEV PANEL (in sidebar) =======
 if st.session_state.is_dev:
-    with st.sidebar.expander("⚙️ Dev Settings"):
-        if st.text_input("Re-enter Dev Password", type="password") == DEV_PASSWORD:
+    with st.sidebar.expander("⚙️ Developer"):
+        if st.text_input("Enter Password", type="password") == DEV_PASSWORD:
             st.success(f"Welcome Aurumz!")
 
             st.subheader("Manage Whitelisted Emails")
+
+            # ✅ Add these lines here
             new_email = st.text_input("Add email to whitelist")
             if st.button("Add Email") and new_email:
                 if new_email not in st.session_state.whitelist:
-                    # Assuming whitelist is a dict; add new email as key with True value
-                    st.session_state.whitelist[new_email] = True
+                    st.session_state.whitelist.append(new_email)
                     save_whitelist(st.session_state.whitelist)
                     st.success(f"{new_email} added")
+                    st.rerun()
 
             st.write("### Current Whitelisted Emails")
-            for email in list(st.session_state.whitelist):  # Wrap in list() to avoid iteration issues
+            for email in list(st.session_state.whitelist):
                 cols = st.columns([4, 1])
                 cols[0].write(email)
                 if cols[1].button("❌", key=f"del-{email}"):
-                    if email in st.session_state.whitelist:
-                        del st.session_state.whitelist[email]  # Safe to delete now
-                        save_whitelist(st.session_state.whitelist)
-                        st.warning(f"{email} removed")
-                        st.rerun()  # Refresh app immediately after deletion
+                    st.session_state.whitelist.remove(email)
+                    save_whitelist(st.session_state.whitelist)
+                    st.warning(f"{email} removed")
+                    st.rerun()
+
 
             st.subheader("Login History")
             hist = load_history()
@@ -154,9 +172,15 @@ if st.session_state.is_dev:
 
                 # Optional: remove email from whitelist if it exists (adjust if needed)
                 if isinstance(st.session_state.whitelist, dict):
-                    if email in st.session_state.whitelist:
-                        del st.session_state.whitelist[email]
-                        save_whitelist(st.session_state.whitelist)
+                    st.write("### Current Whitelisted Emails")
+                for email in list(st.session_state.whitelist):
+                  cols = st.columns([4, 1])
+                  cols[0].write(email)
+                if cols[1].button("❌", key=f"del-{email}"):
+                 st.session_state.whitelist.remove(email)
+                 save_whitelist(st.session_state.whitelist)
+                 st.warning(f"{email} removed")
+                 st.rerun()
 
             
 
@@ -312,17 +336,14 @@ import streamlit as st
 
 def parse_result(result_str):
     try:
-        match = re.search(r"\{.*\}", result_str, re.DOTALL)
-        if match:
-            json_str = match.group(0)
-            data = json.loads(json_str)
-            # Confirm keys exist
-            if "extracted" not in data:
-                st.warning("Extracted fields missing in AI response")
-            return data
-        else:
-            st.error("No JSON object found in API response.")
+        start = result_str.find('{')
+        end = result_str.rfind('}')
+        if start == -1 or end == -1:
+            st.error("No JSON braces found in API response.")
             return None
+        json_str = result_str[start:end+1]
+        data = json.loads(json_str)
+        return data
     except Exception as e:
         st.error(f"JSON parsing error: {e}")
         return None
@@ -457,14 +478,20 @@ comparison_exclusion = st.text_area("Comparison Exclusion Criteria", placeholder
 st.subheader("Outcome Criteria (Optional)")
 outcome_criteria = st.text_area("Outcome Criteria", placeholder="e.g. Annualized relapse rate, disability progression")
 
-fields = st.text_input("Fields to Extract (comma-separated)", placeholder="e.g. Author, Year,Population, Outcome")
+fields = st.text_input("Fields to Extract (comma-separated)", placeholder="e.g. Author, Year, Population, Outcome")
+fields_list = [f.strip() for f in fields.split(",") if f.strip()]
 uploaded_pdfs = st.file_uploader("Upload PDF Files", accept_multiple_files=True)
 
 if st.button("Screen & Extract"):
-
+    if not fields.strip():
+        st.warning("Please enter at least one field to be extracted!")
+        st.stop()  # stop further processing
+    
+    # Your existing checks for PDFs and other criteria
     if not uploaded_pdfs:
         st.warning("Please upload at least one PDF file.")
         st.stop()
+
 
     if not any([
        population_inclusion.strip(), population_exclusion.strip(),
@@ -479,24 +506,47 @@ if st.button("Screen & Extract"):
         st.warning("Please specify at least one field to extract.")
         st.stop()
 
-    fields_list = [f.strip() for f in fields.split(",") if f.strip()]
+    
 
-    included_results = []
-    excluded_results = []
-    maybe_results = []
+    if "included_results" not in st.session_state:
+     st.session_state.included_results = []
+    if "excluded_results" not in st.session_state:
+     st.session_state.excluded_results = []
+    if "maybe_results" not in st.session_state:
+     st.session_state.maybe_results = []
 
-    for pdf in uploaded_pdfs:
-       with st.spinner(f"Reading {pdf.name}..."):
-          text = extract_text_from_pdf(pdf)
+# Clear previous results if any (optional, if you want to reset on each run)
+st.session_state.included_results.clear()
+st.session_state.excluded_results.clear()
+st.session_state.maybe_results.clear()
 
-       confidence = estimate_confidence(text)
-       if confidence < 0.5:
-          st.warning(f"Low Confidence in abstract: {confidence:.2f}")
-       else:
-          st.success(f"High Confidence: {confidence:.2f}")
 
-       prompt = f"""
-You are screening a research paper.
+max_papers = 25
+total_pdfs = min(len(uploaded_pdfs), max_papers)
+
+import time  # Add this at the top of your script if not present
+
+max_papers = 25
+total_pdfs = min(len(uploaded_pdfs), max_papers)
+progress_bar = st.progress(0)
+for idx, pdf in enumerate(uploaded_pdfs[:max_papers], 1):
+    st.info(f"Processing: {pdf.name}")
+    try:
+        pdf.seek(0)  # reset file pointer
+        text = extract_text_from_pdf(pdf)
+
+        if not text.strip():
+            st.warning(f"PDF '{pdf.name}' appears empty or unreadable. Skipping.")
+            progress_bar.progress(idx / total_pdfs)
+            continue
+
+        confidence = estimate_confidence(text)
+
+        prompt = f"""
+You are an expert researcher.
+- You will receive the full text of a paper.
+- Apply the inclusion and exclusion criteria strictly.
+- Respond ONLY with a JSON object EXACTLY in this format (no extra text, no explanation):
 
 Apply the following structured inclusion and exclusion criteria:
 
@@ -517,7 +567,9 @@ Exclusion: {comparison_exclusion}
 Fields to extract: {', '.join(fields_list)}
 
 Here is the full text of the paper:
+\"\"\"
 {text}
+\"\"\"
 
 Return this as JSON:
 {{
@@ -529,39 +581,43 @@ Return this as JSON:
 }}
 """
 
-       
-       with st.spinner(f"Sending '{pdf.name}' to DeepSeek AI..."):
-        try:
+        with st.spinner(f"Sending '{pdf.name}' to DeepSeek AI..."):
             raw_result = query_deepseek(prompt)
-            result = parse_result(raw_result)
-            if not result:
-                st.error(f"Could not parse result for {pdf.name}. Raw output:")
-                st.code(raw_result)
-                continue  # continue here is valid because inside the for loop
-
-            result["filename"] = pdf.name
-            result["confidence"] = confidence
-            if confidence < 0.5:
-                result["flags"] = ["low_confidence"]
-
-            status = result.get("status", "").lower()
-            if status == "include":
-                st.session_state.included_results.append(result)
-                st.session_state.decision_timestamps.append(time.time())
-            elif status == "exclude":
-                st.session_state.excluded_results.append(result)
-                st.session_state.decision_timestamps.append(time.time())
-            elif status == "maybe":
-                st.session_state.maybe_results.append(result)
-                st.session_state.decision_timestamps.append(time.time())
-            else:
-                st.session_state.excluded_results.append(result)
-                st.session_state.decision_timestamps.append(time.time())
-
-            st.success(f"Processed: {pdf.name} — {status.capitalize()}")
             
-        except Exception as e:
-               st.error(f"Error processing {pdf.name}: {str(e)}")
+
+        result = parse_result(raw_result)
+
+        if not result:
+            st.error(f"Could not parse result for {pdf.name}. Raw output:")
+            st.code(raw_result)
+            progress_bar.progress(idx / total_pdfs)
+            continue
+
+        # Add metadata
+        result["filename"] = pdf.name
+        result["confidence"] = confidence
+        if confidence < 0.5:
+            result["flags"] = ["low_confidence"]
+
+        status = result.get("status", "").lower()
+        if status == "include":
+         st.session_state.included_results.append(result)
+        elif status == "exclude":
+         st.session_state.excluded_results.append(result)
+        elif status == "maybe":
+         st.session_state.maybe_results.append(result)
+        else:
+         st.session_state.excluded_results.append(result)
+
+        st.success(f"Processed: {pdf.name} — {status.capitalize()}")
+
+    except Exception as e:
+        st.error(f"Error processing {pdf.name}: {str(e)}")
+
+    progress_bar.progress(idx / total_pdfs)
+    time.sleep(0.5)  # Optional delay to avoid rate limits
+
+st.info("All files processed!")
 
 
 
@@ -660,7 +716,7 @@ import streamlit as st
 file_path = "screening_tool.py"
 last_modified_timestamp = os.path.getmtime(file_path)
 last_updated = datetime.fromtimestamp(last_modified_timestamp).strftime("%Y-%m-%d %H:%M:%S")
-version = "1.0.1"
+version = "1.0.2"
 
 # Footer
 st.markdown(
