@@ -116,7 +116,6 @@ if not st.session_state.authenticated:
 
 
 
-
 # ======= DEV PANEL (in sidebar) =======
 # ======= DEV PANEL (in sidebar) =======
 # ======= DEV PANEL (in sidebar) =======
@@ -653,17 +652,17 @@ if included_results or excluded_results or maybe_results:
         df_maybe = df_from_results(maybe_results)
         export_buttons(df_maybe, "Maybe")
 
-
-
 import os
 from datetime import datetime
 import streamlit as st
 
+# Version info
 file_path = "screening_tool.py"
 last_modified_timestamp = os.path.getmtime(file_path)
 last_updated = datetime.fromtimestamp(last_modified_timestamp).strftime("%Y-%m-%d %H:%M:%S")
 version = "1.0.1"
 
+# Footer
 st.markdown(
     f"""
     <style>
@@ -672,31 +671,25 @@ st.markdown(
         font-family: 'Times New Roman', Times, serif;
         font-size: 10px;
         color: #F0F4F8;
-        opacity: 0.7;
-        margin-top: 150px;
-        padding: 0 10px;
-        overflow: hidden;
+        opacity: 0.9;
+        padding: 4px 8px;
         position: fixed;
         bottom: 0;
         left: 0;
-        background-color: #1f2937; /* optional: add a subtle background */
-    }}
-
-    .footer-left {{
-        float: left;
-    }}
-
-    .footer-right {{
-        float: right;
+        background-color: #1f2937;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        z-index: 9999;
     }}
     </style>
 
     <div class="custom-footer-container">
-        <div class="footer-left">
-            Made with 💛 by its Creator.
-        </div>
-        <div class="footer-right">
+        <div style="white-space: nowrap; letter-spacing: 1px;">
             Version {version} &nbsp;|&nbsp; Last updated: {last_updated}
+        </div>
+        <div style="white-space: nowrap; letter-spacing: 1px;">
+            Made with 💛 by its Creator.
         </div>
     </div>
     """,
