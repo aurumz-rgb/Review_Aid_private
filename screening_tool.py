@@ -655,24 +655,15 @@ if included_results or excluded_results or maybe_results:
 
 
 
-import subprocess
+import os
+from datetime import datetime
 import streamlit as st
 
-# Get version from latest tag
-try:
-    version = subprocess.check_output(["git", "describe", "--tags"]).decode().strip()
-except:
-    version = "v?.?.?"  # fallback
+file_path = "screening_tool.py"
+last_modified_timestamp = os.path.getmtime(file_path)
+last_updated = datetime.fromtimestamp(last_modified_timestamp).strftime("%Y-%m-%d %H:%M:%S")
+version = "1.0.1"
 
-# Get last updated date
-try:
-    last_updated = subprocess.check_output(
-        ["git", "log", "-1", "--format=%cd", "--date=short"]
-    ).decode().strip()
-except:
-    last_updated = "Unknown"
-
-# Display footer
 st.markdown(
     f"""
     <style>
@@ -688,6 +679,7 @@ st.markdown(
         position: fixed;
         bottom: 0;
         left: 0;
+        background-color: #1f2937; /* optional: add a subtle background */
     }}
 
     .footer-left {{
@@ -701,13 +693,12 @@ st.markdown(
 
     <div class="custom-footer-container">
         <div class="footer-left">
-            Version {version} &nbsp;|&nbsp; Last updated: {last_updated}
+            Made with 💛 by its Creator.
         </div>
         <div class="footer-right">
-            Made with 💛 by its Creator.
+            Version {version} &nbsp;|&nbsp; Last updated: {last_updated}
         </div>
     </div>
     """,
     unsafe_allow_html=True
 )
-
