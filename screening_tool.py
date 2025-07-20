@@ -118,6 +118,8 @@ if not st.session_state.authenticated:
 
 
 # ======= DEV PANEL (in sidebar) =======
+# ======= DEV PANEL (in sidebar) =======
+# ======= DEV PANEL (in sidebar) =======
 if st.session_state.is_dev:
     with st.sidebar.expander("⚙️ Dev Settings"):
         if st.text_input("Re-enter Dev Password", type="password") == DEV_PASSWORD:
@@ -127,26 +129,37 @@ if st.session_state.is_dev:
             new_email = st.text_input("Add email to whitelist")
             if st.button("Add Email") and new_email:
                 if new_email not in st.session_state.whitelist:
-                    st.session_state.whitelist.append(new_email)
+                    # Assuming whitelist is a dict; add new email as key with True value
+                    st.session_state.whitelist[new_email] = True
                     save_whitelist(st.session_state.whitelist)
                     st.success(f"{new_email} added")
 
             st.write("### Current Whitelisted Emails")
-            for email in st.session_state.whitelist:
-                cols = st.columns([4,1])
+            for email in list(st.session_state.whitelist):  # Wrap in list() to avoid iteration issues
+                cols = st.columns([4, 1])
                 cols[0].write(email)
                 if cols[1].button("❌", key=f"del-{email}"):
-                    st.session_state.whitelist.remove(email)
-                    save_whitelist(st.session_state.whitelist)
-                    st.warning(f"{email} removed")
+                    if email in st.session_state.whitelist:
+                        del st.session_state.whitelist[email]  # Safe to delete now
+                        save_whitelist(st.session_state.whitelist)
+                        st.warning(f"{email} removed")
+                        st.rerun()  # Refresh app immediately after deletion
 
             st.subheader("Login History")
             hist = load_history()
+
             for email, entries in hist.items():
                 st.write(f"**{email}**")
                 for record in entries:
                     st.write(f"- {record['login']}")
 
+                # Optional: remove email from whitelist if it exists (adjust if needed)
+                if isinstance(st.session_state.whitelist, dict):
+                    if email in st.session_state.whitelist:
+                        del st.session_state.whitelist[email]
+                        save_whitelist(st.session_state.whitelist)
+
+            
 
 
 # Session state initialization
