@@ -8,8 +8,16 @@ import json
 import io
 import plotly.express as px
 import pandas as pd
+import requests
 
+st.set_page_config(layout="wide")
 
+from streamlit_lottie import st_lottie
+import json
+
+def load_lottiefile(filepath: str):
+    with open(filepath, "r") as f:
+        return json.load(f)
 
 
 from datetime import datetime
@@ -132,8 +140,7 @@ if not st.session_state.authenticated:
 
     st.stop()
 
-# ======= DEV PANEL (in sidebar) =======
-# ======= DEV PANEL (in sidebar) =======
+
 # ======= DEV PANEL (in sidebar) =======
 if st.session_state.is_dev:
     with st.sidebar.expander("⚙️ Developer"):
@@ -193,24 +200,54 @@ if "note_acknowledged" not in st.session_state:
 if not st.session_state.note_acknowledged:
     st.markdown("""⚠️ **Note:**
 
- Accuracy of this tool is around 85-90%, with more errors in extracting Secondary Outcomes and non-phrasing issues.
+ - Private version of the Open Access.
 
- Upload up to 15 papers maximum, or it may crash and fail to show results.
+ - Upload limit is 25 papers maximum in a single session.
 
- Do not re-screen the paper as it will consume 2x tokens.
+ - Do not re-screen the paper as it will consume 2x tokens.
 
- $1 ~ 250 Articles, but this varies with article length and the number of Articles can be more or less.
+ - $1 ~ 250 Articles, but this varies with article length and the number of Articles can be more or less.
 
- Always crosscheck especially for maybe/excluded extracted studies.
+ - Always crosscheck especially for maybe/excluded extracted studies.
 
- Confidence scores are nothing but scores which determine how well texts were readable by this tool (max:0.9).
+ - Confidence scores are nothing but scores which determine how well texts were readable by this tool (max:0.9).
+
+  Double-click ENTER:
 """)
-    if st.button("OK, Got it"):
+    if st.button("ENTER"):
         st.session_state.note_acknowledged = True
     st.stop()
+    
 
 
 
+lottie_animation = load_lottiefile("animation.json")
+
+
+
+
+# Custom container to fix to bottom with CSS
+st.markdown(
+    """
+    <style>
+    .lottie-bottom {
+        position: fixed;
+        bottom: 0px;
+        left: 50%;
+        transform: translateX(-50%);
+        opacity: 1;
+        z-index: 5;
+        background-color: transparent !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# Wrap the lottie inside a styled div
+st.markdown('<div class="lottie-bottom">', unsafe_allow_html=True)
+st_lottie(lottie_animation, height=300, key="lottie_bottom")
+st.markdown('</div>', unsafe_allow_html=True)
 
 
 st.markdown(
@@ -219,7 +256,7 @@ st.markdown(
     @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap');
 
     .stApp {
-        background-color: #2B3445;
+        background-color: #0f1117;
         color: #F0F4F8;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
@@ -230,6 +267,7 @@ st.markdown(
         font-weight: 700;
         font-size: 3.5rem;
         color: #F0F4F8;
+        margin-top: 10px;
     }
 
     .typewriter .typing {
@@ -245,7 +283,7 @@ st.markdown(
     }
 
     .gold {
-        color: #FF9B45;
+        color: #45a4f3;
     }
 
     .typewriter .dot {
@@ -271,7 +309,7 @@ st.markdown(
     </div>
 
     <h3 style='text-align: center; color: #F0F4F8; margin-top: 10px;'>
-        A Research Article Screener & Extractor
+        An Ai based Full-text Research Article Screener & Extractor
     </h3>
     """,
     unsafe_allow_html=True
@@ -745,7 +783,7 @@ st.markdown(
             Version {version} &nbsp;|&nbsp; Last updated: {last_updated}
         </div>
         <div style="white-space: nowrap; letter-spacing: 1px;">
-            Made with 💛 by its Creator.
+            Made with 💙 by its Creator.
         </div>
     </div>
     """,
