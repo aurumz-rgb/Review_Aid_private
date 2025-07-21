@@ -79,7 +79,14 @@ def save_history(history):
         json.dump(history, f)
 
 if "whitelist" not in st.session_state:
-    st.session_state.whitelist = load_whitelist()
+    wl = load_whitelist()
+    if isinstance(wl, list):
+        st.session_state.whitelist = wl
+    elif isinstance(wl, dict):
+        # If it's a dict (from older format), extract the keys
+        st.session_state.whitelist = list(wl.keys())
+    else:
+        st.session_state.whitelist = []
 
 if "login_history" not in st.session_state:
     st.session_state.login_history = load_history()
@@ -159,10 +166,10 @@ if st.session_state.is_dev:
                     st.rerun()
 
             st.write("### Current Whitelisted Emails")
-            for email in list(st.session_state.whitelist):
+            for i, email in enumerate(list(st.session_state.whitelist)):
                 cols = st.columns([4, 1])
                 cols[0].write(email)
-                if cols[1].button("❌", key=f"del-{email}"):
+                if cols[1].button("❌", key=f"del-{email}-{i}"):
                     st.session_state.whitelist.remove(email)
                     save_whitelist(st.session_state.whitelist)
                     st.warning(f"{email} removed")
@@ -180,14 +187,7 @@ if st.session_state.is_dev:
                 # Optional: remove email from whitelist if it exists (adjust if needed)
                 if isinstance(st.session_state.whitelist, dict):
                     st.write("### Current Whitelisted Emails")
-                for email in list(st.session_state.whitelist):
-                  cols = st.columns([4, 1])
-                  cols[0].write(email)
-                if cols[1].button("❌", key=f"del-{email}"):
-                 st.session_state.whitelist.remove(email)
-                 save_whitelist(st.session_state.whitelist)
-                 st.warning(f"{email} removed")
-                 st.rerun()
+                
 
             
 
